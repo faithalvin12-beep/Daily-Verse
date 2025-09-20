@@ -4,9 +4,637 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Daily Verse — Share & Remember</title>
-  <!-- The entire provided HTML content would go here exactly as given -->
+  <style>
+    :root {
+      --maxw: 980px;
+      --accent: #2b6cb0;
+      --muted: #666;
+      --bg: #f7fbff;
+      --card: #ffffff;
+      --radius: 10px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    body{
+      margin:0;
+      background: linear-gradient(180deg,#f0f6ff 0%, var(--bg) 100%);
+      color:#111;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:28px;
+    }
+    .wrap{
+      width:100%;
+      max-width:var(--maxw);
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:20px;
+    }
+    header{
+      grid-column: 1 / -1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:6px;
+    }
+    h1{font-size:20px;margin:0;display:flex;gap:10px;align-items:center}
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:0 6px 18px rgba(20,30,80,0.08);
+      padding:16px;
+    }
+    .sidebar .card{padding:12px;}
+    .profile{
+      display:flex;gap:12px;align-items:center;
+    }
+    .avatar{
+      width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#4aa3ff);
+      display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;
+      box-shadow: inset 0 -6px 12px rgba(0,0,0,0.06);
+    }
+    .muted{color:var(--muted);font-size:13px}
+    .verse-big{
+      padding:20px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfdff);
+      min-height:140px;display:flex;flex-direction:column;gap:12px;justify-content:center;
+    }
+    .verse-text{font-size:18px;line-height:1.4}
+    .verse-ref{font-weight:600;text-align:right;color:var(--accent)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button{
+      border:0;background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;
+      font-weight:600;
+    }
+    button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(43,108,176,0.12)}
+    .small{padding:6px 8px;font-size:13px}
+    form{display:flex;flex-direction:column;gap:8px}
+    input, textarea, select{
+      padding:10px;border-radius:8px;border:1px solid #e6eef8;background:transparent;
+      font-size:14px;outline:none;
+    }
+    label{font-size:13px;color:var(--muted)}
+    .list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .verse-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:8px;background:#fbfdff}
+    .small-muted{font-size:13px;color:#777}
+    .top-actions{display:flex;gap:8px;align-items:center}
+    .footer{grid-column:1/-1;text-align:center;color:#666;font-size:13px;margin-top:12px}
+    @media (max-width:880px){
+      .wrap{grid-template-columns:1fr; padding:0 8px;}
+      header{flex-direction:column;align-items:flex-start}
+    }
+  </style>
 </head>
 <body>
-  <!-- Content omitted for brevity -->
+  <div class="wrap">
+    <header>
+      <h1>Daily Verse <span style="font-size:12px;color:var(--muted)">share • remember • add</span></h1>
+      <div class="top-actions">
+        <div id="greeting" class="muted">Welcome — please sign in</div>
+        <button id="btnSignIn" class="small">Sign In</button>
+        <button id="btnSignUp" class="small ghost">Create account</button>
+        <button id="btnSignOut" class="small ghost" style="display:none">Sign out</button>
+      </div>
+    </header>
+
+    <!-- Sidebar: user, add verse -->
+    <aside class="sidebar">
+      <div class="card profile" id="profileCard">
+        <div class="avatar" id="avatar">?</div>
+        <div>
+          <div id="profileName">Not signed in</div>
+          <div class="muted" id="profileEmail">—</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Add a verse</strong>
+          <small class="small-muted">Saved locally</small>
+        </div>
+        <form id="addVerseForm">
+          <label>Verse text</label>
+          <textarea id="verseText" rows="3" placeholder="Write verse text or paste..."></textarea>
+          <label>Reference (e.g. John 3:16)</label>
+          <input id="verseRef" placeholder="Reference" />
+          <div style="display:flex;gap:8px">
+            <button id="saveVerse" type="submit">Save</button>
+            <button id="clearForm" type="button" class="ghost">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <strong>Your Verses</strong>
+        <div id="myVerses" class="list" style="margin-top:8px">
+          <!-- list -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content: daily verse, sharing -->
+    <main>
+      <div class="card verse-big" aria-live="polite">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="muted">Today's verse</div>
+            <div class="small-muted" id="dateLabel"></div>
+          </div>
+          <div class="controls">
+            <button id="btnPrev" class="ghost small">‹ Prev</button>
+            <button id="btnNext" class="ghost small">Next ›</button>
+            <button id="btnFav" class="small ghost">★ Favorite</button>
+            <button id="btnShare" class="small">Share</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="verse-text" id="dailyVerse">Loading...</div>
+          <div class="verse-ref" id="dailyRef"></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <div class="small-muted" id="verseSource">Source: default list</div>
+          <div class="small-muted" id="verseIndex"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <strong>Share a verse</strong>
+        <p class="muted" style="margin:6px 0">Click Share to use your device sharing options or copy a link to share this verse.</p>
+        <div style="display:flex;gap:8px">
+          <input id="shareLink" style="flex:1" readonly />
+          <button id="copyLink" class="small ghost">Copy</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <strong>About storage</strong>
+        <p class="muted" style="margin:6px 0">
+          This app stores data locally in your browser: users, verses, and login state. Choose "Remember me" on sign-in to stay signed in on this device.
+        </p>
+      </div>
+    </main>
+
+    <div class="footer">Built for demo — data is stored only in your browser (localStorage).</div>
+  </div>
+
+  <!-- Sign in / Sign up modal (simple) -->
+  <div id="authModal" style="display:none;position:fixed;inset:0;background:rgba(10,14,30,0.45);align-items:center;justify-content:center">
+    <div class="card" style="width:420px;max-width:94%;padding:18px;position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong id="authTitle">Sign In</strong>
+        <button id="closeAuth" class="ghost small">Close</button>
+      </div>
+      <div id="authBody" style="margin-top:8px">
+        <!-- forms will be injected -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /* ----------------------------
+     Utilities & storage helpers
+     ---------------------------- */
+  const DB_USERS_KEY = 'dv_users_v1';
+  const DB_VERSES_KEY = 'dv_verses_v1';
+  const DB_CUR_USER = 'dv_current_user_v1';
+
+  // initial verse list (sample)
+  const DEFAULT_VERSES = [
+    {text: "For God so loved the world, that he gave his only Son...", ref: "John 3:16"},
+    {text: "I can do all things through him who strengthens me.", ref: "Philippians 4:13"},
+    {text: "The Lord is my shepherd; I shall not want.", ref: "Psalm 23:1"},
+    {text: "Trust in the Lord with all your heart, and lean not on your own understanding.", ref: "Proverbs 3:5"},
+    {text: "Be strong and courageous. Do not be frightened, and do not be dismayed, for the Lord your God is with you wherever you go.", ref: "Joshua 1:9"},
+    {text: "Rejoice in hope, be patient in tribulation, be constant in prayer.", ref: "Romans 12:12"}
+  ];
+
+  function nowDateLabel() {
+    const d = new Date();
+    return d.toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'short', day:'numeric'});
+  }
+
+  function readStorage(key, fallback) {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : fallback;
+    } catch(e) { return fallback; }
+  }
+  function writeStorage(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  // crypto helper: hash password with SHA-256, return hex
+  async function sha256Hex(text) {
+    const enc = new TextEncoder();
+    const data = enc.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  /* ----------------------------
+     Users & auth (client-only)
+     ---------------------------- */
+  function getUsers() {
+    return readStorage(DB_USERS_KEY, {});
+  }
+  function saveUsers(obj) {
+    writeStorage(DB_USERS_KEY, obj);
+  }
+  function getVerses() {
+    return readStorage(DB_VERSES_KEY, DEFAULT_VERSES.slice());
+  }
+  function saveVerses(list) {
+    writeStorage(DB_VERSES_KEY, list);
+  }
+
+  async function createUser({username, email, password}) {
+    const users = getUsers();
+    if (users[email]) throw new Error('Email already exists');
+    const pwdHash = await sha256Hex(password);
+    users[email] = {username, email, pwdHash, createdAt: new Date().toISOString(), favorites: []};
+    saveUsers(users);
+    return users[email];
+  }
+
+  async function signIn({email, password, remember}) {
+    const users = getUsers();
+    const user = users[email];
+    if (!user) throw new Error('No user with that email');
+    const hash = await sha256Hex(password);
+    if (hash !== user.pwdHash) throw new Error('Incorrect password');
+    // save current user (without password) - keep small
+    const publicUser = {username: user.username, email: user.email, createdAt: user.createdAt, favorites: user.favorites || []};
+    if (remember) localStorage.setItem(DB_CUR_USER, JSON.stringify(publicUser));
+    else sessionStorage.setItem(DB_CUR_USER, JSON.stringify(publicUser));
+    return publicUser;
+  }
+
+  function signOut() {
+    localStorage.removeItem(DB_CUR_USER);
+    sessionStorage.removeItem(DB_CUR_USER);
+    renderAuthState();
+  }
+
+  function getCurrentUser() {
+    const fromLocal = readStorage(DB_CUR_USER, null);
+    if (fromLocal) return fromLocal;
+    try {
+      const s = sessionStorage.getItem(DB_CUR_USER);
+      return s ? JSON.parse(s) : null;
+    } catch(e){ return null; }
+  }
+
+  /* ----------------------------
+     UI rendering and actions
+     ---------------------------- */
+  const profileNameEl = document.getElementById('profileName');
+  const profileEmailEl = document.getElementById('profileEmail');
+  const avatarEl = document.getElementById('avatar');
+  const greetingEl = document.getElementById('greeting');
+  const btnSignIn = document.getElementById('btnSignIn');
+  const btnSignUp = document.getElementById('btnSignUp');
+  const btnSignOut = document.getElementById('btnSignOut');
+
+  const dateLabel = document.getElementById('dateLabel');
+  const dailyVerseEl = document.getElementById('dailyVerse');
+  const dailyRefEl = document.getElementById('dailyRef');
+  const verseSourceEl = document.getElementById('verseSource');
+  const verseIndexEl = document.getElementById('verseIndex');
+
+  const myVersesEl = document.getElementById('myVerses');
+  const shareLinkInput = document.getElementById('shareLink');
+
+  let verses = getVerses();
+  let currentIndex = 0; // index shown in main area
+  // deterministic "verse of the day" based on date
+  function verseIndexForDate(d = new Date()) {
+    const days = Math.floor(d / (24*60*60*1000)); // epoch days
+    return days % verses.length;
+  }
+
+  function renderDaily(index = null) {
+    verses = getVerses();
+    if (verses.length === 0) {
+      dailyVerseEl.textContent = "No verses yet — add one!";
+      dailyRefEl.textContent = "";
+      verseSourceEl.textContent = "";
+      verseIndexEl.textContent = "";
+      shareLinkInput.value = "";
+      return;
+    }
+    if (index === null) index = verseIndexForDate();
+    currentIndex = ((index % verses.length) + verses.length) % verses.length;
+    const v = verses[currentIndex];
+    dailyVerseEl.textContent = v.text;
+    dailyRefEl.textContent = v.ref || "";
+    dateLabel.textContent = nowDateLabel();
+    verseSourceEl.textContent = `Source: ${v.source || 'your list'}`;
+    verseIndexEl.textContent = `${currentIndex + 1} / ${verses.length}`;
+    shareLinkInput.value = makeShareLink(v);
+    updateFavButton();
+  }
+
+  function updateFavButton() {
+    const cur = getCurrentUser();
+    const btnFav = document.getElementById('btnFav');
+    if (!cur) {
+      btnFav.textContent = '★ Favorite';
+      return;
+    }
+    const users = getUsers();
+    const u = users[cur.email];
+    const favs = u && u.favorites ? u.favorites : [];
+    const isFav = favs.includes(currentIndex);
+    btnFav.textContent = isFav ? '★ Favorited' : '☆ Favorite';
+    btnFav.classList.toggle('ghost', !isFav);
+  }
+
+  function makeShareLink(v) {
+    // encode verse in URL hash
+    const base = location.href.split('#')[0].split('?')[0];
+    const payload = encodeURIComponent(JSON.stringify({t: v.text, r: v.ref}));
+    return `${base}#share=${payload}`;
+  }
+
+  // Populate "My Verses"
+  function renderMyVerses() {
+    myVersesEl.innerHTML = '';
+    verses = getVerses();
+    if (verses.length === 0) {
+      myVersesEl.innerHTML = '<div class="small-muted">No verses yet.</div>';
+      return;
+    }
+    verses.forEach((v, idx) => {
+      const row = document.createElement('div');
+      row.className = 'verse-row';
+      row.innerHTML = `
+        <div style="flex:1">
+          <div style="font-size:14px">${escapeHTML(limit(v.text, 120))}</div>
+          <div class="small-muted" style="margin-top:4px">${escapeHTML(v.ref || '')}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="ghost small" data-action="view" data-idx="${idx}">View</button>
+          <button class="ghost small" data-action="del" data-idx="${idx}">Delete</button>
+        </div>
+      `;
+      myVersesEl.appendChild(row);
+    });
+  }
+
+  function limit(str, n) {
+    return str.length>n ? str.slice(0,n-1)+'…' : str;
+  }
+
+  function escapeHTML(s) {
+    if (!s) return '';
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* ----------------------------
+     Event bindings
+     ---------------------------- */
+  document.getElementById('addVerseForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const t = document.getElementById('verseText').value.trim();
+    const r = document.getElementById('verseRef').value.trim();
+    if (!t) return alert('Please enter verse text.');
+    const list = getVerses();
+    list.push({text: t, ref: r, createdAt: new Date().toISOString()});
+    saveVerses(list);
+    document.getElementById('verseText').value = '';
+    document.getElementById('verseRef').value = '';
+    renderMyVerses();
+    renderDaily(); // refresh
+  });
+
+  document.getElementById('clearForm').addEventListener('click', () => {
+    document.getElementById('verseText').value = '';
+    document.getElementById('verseRef').value = '';
+  });
+
+  // verse list actions (view/delete)
+  myVersesEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const idx = Number(btn.dataset.idx);
+    if (action === 'view') {
+      renderDaily(idx);
+      window.scrollTo({top:0,behavior:'smooth'});
+    } else if (action === 'del') {
+      if (!confirm('Delete this verse?')) return;
+      const list = getVerses();
+      list.splice(idx,1);
+      saveVerses(list);
+      renderMyVerses();
+      renderDaily();
+    }
+  });
+
+  // Prev / Next
+  document.getElementById('btnPrev').addEventListener('click', () => {
+    renderDaily(currentIndex - 1);
+  });
+  document.getElementById('btnNext').addEventListener('click', () => {
+    renderDaily(currentIndex + 1);
+  });
+
+  // Favorite (saved per user by index)
+  document.getElementById('btnFav').addEventListener('click', () => {
+    const cur = getCurrentUser();
+    if (!cur) return showAuthModal('signIn');
+    const users = getUsers();
+    const u = users[cur.email];
+    if (!u) u.favorites = [];
+    const favs = new Set(u.favorites || []);
+    if (favs.has(currentIndex)) favs.delete(currentIndex);
+    else favs.add(currentIndex);
+    u.favorites = Array.from(favs);
+    users[cur.email] = u;
+    saveUsers(users);
+    // update session copy
+    const publicUser = {username: u.username, email: u.email, createdAt: u.createdAt, favorites: u.favorites};
+    if (localStorage.getItem(DB_CUR_USER)) localStorage.setItem(DB_CUR_USER, JSON.stringify(publicUser));
+    else sessionStorage.setItem(DB_CUR_USER, JSON.stringify(publicUser));
+    updateFavButton();
+  });
+
+  // Share: use Web Share API if available
+  document.getElementById('btnShare').addEventListener('click', async () => {
+    const v = getVerses()[currentIndex];
+    const text = `${v.text} — ${v.ref || ''}`;
+    const url = makeShareLink(v);
+    if (navigator.share) {
+      try {
+        await navigator.share({title:'Daily Verse', text, url});
+      } catch(err) {
+        // cancelled or error
+      }
+    } else {
+      // copy link fallback
+      shareLinkInput.value = url;
+      shareLinkInput.select();
+      document.execCommand('copy');
+      alert('Link copied to clipboard');
+    }
+  });
+
+  // copy link button
+  document.getElementById('copyLink').addEventListener('click', () => {
+    shareLinkInput.select();
+    document.execCommand('copy');
+    alert('Link copied');
+  });
+
+  // auth modal buttons
+  btnSignIn.addEventListener('click', () => showAuthModal('signIn'));
+  btnSignUp.addEventListener('click', () => showAuthModal('signUp'));
+  btnSignOut.addEventListener('click', () => { signOut(); });
+
+  document.getElementById('closeAuth').addEventListener('click', () => hideAuthModal());
+
+  function showAuthModal(mode = 'signIn') {
+    const modal = document.getElementById('authModal');
+    modal.style.display = 'flex';
+    const title = document.getElementById('authTitle');
+    const body = document.getElementById('authBody');
+    if (mode === 'signUp') {
+      title.textContent = 'Create account';
+      body.innerHTML = `
+        <form id="signupForm">
+          <label>Username</label><input id="su_username" required />
+          <label>Email</label><input id="su_email" type="email" required />
+          <label>Password</label><input id="su_pwd" type="password" required />
+          <label>Confirm password</label><input id="su_pwd2" type="password" required />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="submit">Create</button>
+            <button type="button" id="toSignIn" class="ghost">Have account?</button>
+          </div>
+        </form>
+      `;
+      document.getElementById('toSignIn').addEventListener('click', () => showAuthModal('signIn'));
+      document.getElementById('signupForm').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const username = document.getElementById('su_username').value.trim();
+        const email = document.getElementById('su_email').value.trim().toLowerCase();
+        const pwd = document.getElementById('su_pwd').value;
+        const pwd2 = document.getElementById('su_pwd2').value;
+        if (!username || !email || !pwd) return alert('Fill all fields');
+        if (pwd !== pwd2) return alert('Passwords do not match');
+        try {
+          await createUser({username, email, password: pwd});
+          alert('Account created — please sign in');
+          showAuthModal('signIn');
+        } catch(err) {
+          alert(err.message || 'Could not create account');
+        }
+      });
+    } else {
+      title.textContent = 'Sign in';
+      body.innerHTML = `
+        <form id="signinForm">
+          <label>Email</label><input id="si_email" type="email" required />
+          <label>Password</label><input id="si_pwd" type="password" required />
+          <label style="display:flex;align-items:center;gap:8px"><input id="si_rem" type="checkbox" /> Remember me</label>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="submit">Sign in</button>
+            <button type="button" id="toSignUp" class="ghost">Create account</button>
+          </div>
+          <div style="margin-top:8px" class="small-muted">This demo stores a hashed password in your browser only.</div>
+        </form>
+      `;
+      document.getElementById('toSignUp').addEventListener('click', () => showAuthModal('signUp'));
+      document.getElementById('signinForm').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const email = document.getElementById('si_email').value.trim().toLowerCase();
+        const pwd = document.getElementById('si_pwd').value;
+        const rem = document.getElementById('si_rem').checked;
+        try {
+          const user = await signIn({email, password: pwd, remember: rem});
+          hideAuthModal();
+          renderAuthState();
+        } catch(err) {
+          alert(err.message || 'Sign in failed');
+        }
+      });
+    }
+  }
+
+  function hideAuthModal() {
+    document.getElementById('authModal').style.display = 'none';
+    document.getElementById('authBody').innerHTML = '';
+  }
+
+  // render auth state
+  function renderAuthState() {
+    const cur = getCurrentUser();
+    if (cur) {
+      profileNameEl.textContent = cur.username || cur.email;
+      profileEmailEl.textContent = cur.email;
+      avatarEl.textContent = (cur.username && cur.username[0]) ? cur.username[0].toUpperCase() : cur.email[0].toUpperCase();
+      greetingEl.textContent = `Hello, ${cur.username || cur.email.split('@')[0]}`;
+      btnSignIn.style.display = 'none';
+      btnSignUp.style.display = 'none';
+      btnSignOut.style.display = 'inline-block';
+    } else {
+      profileNameEl.textContent = 'Not signed in';
+      profileEmailEl.textContent = '—';
+      avatarEl.textContent = '?';
+      greetingEl.textContent = 'Welcome — please sign in';
+      btnSignIn.style.display = 'inline-block';
+      btnSignUp.style.display = 'inline-block';
+      btnSignOut.style.display = 'none';
+    }
+    updateFavButton();
+  }
+
+  // check for share in URL hash
+  function checkHashShare() {
+    const h = location.hash || '';
+    if (h.startsWith('#share=')) {
+      try {
+        const payload = decodeURIComponent(h.replace('#share=',''));
+        const obj = JSON.parse(payload);
+        // temporarily show in the main area
+        dailyVerseEl.textContent = obj.t || '';
+        dailyRefEl.textContent = obj.r || '';
+        verseSourceEl.textContent = 'Shared link';
+        verseIndexEl.textContent = '';
+        shareLinkInput.value = location.href;
+      } catch(e) {}
+    } else {
+      renderDaily(); // normal
+    }
+  }
+
+  // initial setup
+  (function init() {
+    // ensure there's a verse list present
+    if (!localStorage.getItem(DB_VERSES_KEY)) {
+      saveVerses(DEFAULT_VERSES.slice());
+    }
+    renderMyVerses();
+    renderAuthState();
+    dateLabel.textContent = nowDateLabel();
+    checkHashShare();
+
+    // listen to storage events (multi-tab)
+    window.addEventListener('storage', () => {
+      verses = getVerses();
+      renderMyVerses();
+      renderAuthState();
+      renderDaily();
+    });
+
+    // show today's verse by default
+    renderDaily();
+
+    // highlight share link when clicked
+    shareLinkInput.addEventListener('click', () => shareLinkInput.select());
+  })();
+  </script>
 </body>
 </html>
